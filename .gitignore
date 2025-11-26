@@ -1,0 +1,5 @@
+# Ignore Firebase and other sensitive keys
+firebase_key.json
+*.envmedia/
+*.jpg
+*.png

@@ -1,0 +1,405 @@
+{% extends 'base.html' %}
+{% block content %}
+<div id="hulam-verifier" style="all: unset;">
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --gray-light: #f8fafc;
+    --gray-border: #e2e8f0;
+    --text-dark: #1e293b;
+  }
+
+  body {
+    font-family: "Poppins", sans-serif;
+    background: var(--gray-light);
+  }
+
+  .verify-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  }
+
+  h1 {
+    text-align: center;
+    color: var(--text-dark);
+    font-weight: 700;
+    font-size: 1.8rem;
+    margin-bottom: 25px;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #fff;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary { background: var(--primary); }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-success { background: var(--success); }
+  .btn-danger { background: var(--danger); }
+  input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--gray-border);
+    margin-bottom: 10px;
+    font-family: "Poppins";
+  }
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+  }
+
+  .scanner-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .scanner-layout { grid-template-columns: 1fr; }
+  }
+
+  #video {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid var(--gray-border);
+  }
+
+  #result {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--gray-border);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+
+  #qrResultBox {
+    background: #f9fafb;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+  }
+
+  #status {
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  #feedbackForm {
+    display: none;
+    margin-top: 15px;
+  }
+
+  .section-header {
+    font-weight: 600;
+    border-left: 4px solid var(--primary);
+    padding-left: 10px;
+    margin: 20px 0 10px;
+    color: var(--text-dark);
+  }
+
+  textarea, select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--gray-border);
+    margin-bottom: 10px;
+    font-family: "Poppins", sans-serif;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .form-actions button {
+    min-width: 150px;
+  }
+</style>
+
+<div class="verify-container">
+  <h1>QR Code Verification</h1>
+
+  <div class="controls">
+    <button id="scanClaim" class="btn btn-primary"><i class="fa fa-qrcode"></i> Scan for Claim</button>
+    <button id="scanReturn" class="btn btn-primary"><i class="fa fa-undo"></i> Scan for Return</button>
+  </div>
+
+  <div class="scanner-layout">
+    <img id="video" src="" alt="ESP32-CAM Stream">
+    <canvas id="canvas" hidden></canvas>
+
+    <div id="verificationSection">
+      <h3 class="section-header">Verification Result</h3>
+      <div id="qrResultBox">
+          <p id="status">Idle — waiting for scan</p>
+      </div>
+    </div>
+
+      <div id="feedbackForm">
+        <div class="section-header">Borrower & Item Details</div>
+        <div id="borrowerDetails"></div>
+
+        <div class="section-header">Feedback</div>
+        <label for="feedbackComment">Comment:</label>
+        <textarea id="feedbackComment" placeholder="Type your feedback..."></textarea>
+
+        <label for="returnStatus">Return Status:</label>
+        <select id="returnStatus">
+          <option value="On Time">On Time</option>
+          <option value="Late Return">Late Return</option>
+          <option value="Not Returned">Not Returned</option>
+        </select>
+
+        <div class="form-actions">
+          <button type="button" id="submitFeedbackBtn" class="btn btn-success">Confirm Return</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+<script>
+(() => {
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  const statusEl = document.getElementById("status");
+  const feedbackForm = document.getElementById("feedbackForm");
+  const qrResultBox = document.getElementById("qrResultBox");
+  const videoEl = document.getElementById("video");
+  const borrowerDetails = document.getElementById("borrowerDetails");
+  const verificationSection = document.getElementById("verificationSection");
+
+  let mode = null;
+  let scanning = false;
+  let lastQR = "";
+
+  const ESP32_IP = "192.168.1.50"; 
+  const ESP32_CAPTURE_URL = `http://${ESP32_IP}/capture`;
+
+  document.getElementById("scanClaim").addEventListener("click", () => startScan("claim"));
+  document.getElementById("scanReturn").addEventListener("click", () => startScan("return"));
+
+  function startScan(m) {
+    mode = m;
+    scanning = true;
+    lastQR = "";
+    feedbackForm.style.display = "none";
+    verificationSection.style.display = "block";
+    statusEl.textContent = "Scanning for QR...";
+    captureLoop();
+  }
+
+  async function captureLoop() {
+    if (!scanning) return;
+    try {
+      const res = await fetch(`${ESP32_CAPTURE_URL}?${Date.now()}`, { cache: "no-store" });
+      const blob = await res.blob();
+      const img = await createImageBitmap(blob);
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      videoEl.src = URL.createObjectURL(blob);
+      const imageData = ctx.getImageData(0, 0, img.width, img.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+      if (code && code.data && code.data !== lastQR) {
+        lastQR = code.data.trim();
+        scanning = false;
+        beep();
+        verifyQR(lastQR);
+        return;
+      }
+    } catch (err) {
+      console.error("Capture error:", err);
+    }
+    if (scanning) setTimeout(captureLoop, 700);
+  }
+
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      osc.frequency.value = 800;
+      osc.connect(ctx.destination);
+      osc.start();
+      setTimeout(() => osc.stop(), 120);
+    } catch (e) {}
+  }
+
+  function verifyQR(qr) {
+    const match = qr.match(/T\d+/);
+    const cleanQR = match ? match[0] : qr.trim();
+    statusEl.textContent = `QR detected: ${cleanQR} — verifying...`;
+
+    fetch(`/verify_qr/${mode}/${encodeURIComponent(cleanQR)}/`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          statusEl.textContent = "⚠️ " + data.error;
+          scanning = true;
+          captureLoop();
+        } else {
+
+        if (mode === "claim") {
+            verificationSection.style.display = "block";
+
+            let itemsHTML = "";
+            data.items.forEach(it => {
+                itemsHTML += `
+                    <div style="margin-left:10px; margin-top:5px;">
+                        • <b>${it.name}</b> — Qty: ${it.quantity}
+                    </div>
+                `;
+            });
+
+            // Construct result box (same layout as before)
+            qrResultBox.innerHTML = `
+                <b>Borrower:</b> ${data.borrower}<br>
+                <b>Status:</b> ${data.status}<br>
+                <b>Borrowed:</b> ${data.start} → ${data.end}<br><br>
+
+                <b>Items Borrowed:</b><br>
+                ${itemsHTML}<br>
+
+                <!-- NEW Delivered By input -->
+                <label style="margin-top:10px;"><b>Delivered By:</b></label>
+                <input id="deliveredByInput"
+                      type="text"
+                      placeholder="Enter staff name"
+                      style="padding:8px; width:100%; border-radius:6px; border:1px solid #ccc; margin-top:6px; margin-bottom:12px;">
+            `;
+
+            // Create Confirm button
+            const claimBtn = document.createElement("button");
+            claimBtn.textContent = "Confirm Claim";
+            claimBtn.className = "btn btn-success";
+
+            claimBtn.onclick = () => {
+                const deliveredBy = document.getElementById("deliveredByInput").value.trim();
+
+                if (!deliveredBy) {
+                    Swal.fire("Error", "Please enter who delivered the item.", "error");
+                    return;
+                }
+
+                updateReservation(mode, cleanQR, deliveredBy);
+            };
+
+            qrResultBox.appendChild(claimBtn);
+        }
+
+
+          if (mode === "return") {
+              verificationSection.style.display = "none";
+
+              let returnItemsHTML = "";
+              data.items.forEach(it => {
+                returnItemsHTML += `<div style="margin-left:10px; margin-top:5px;">
+                    • <b>${it.name}</b> — Qty: ${it.quantity}
+                  </div>`;
+              });
+
+              borrowerDetails.innerHTML = `
+                <b>Borrower:</b> ${data.borrower}<br>
+                <b>Status:</b> ${data.status}<br>
+                <b>Borrowed:</b> ${data.start} → ${data.end}<br><br>
+
+                <b>Items:</b><br>
+                ${returnItemsHTML}
+              `;
+
+              feedbackForm.style.display = "block";
+
+              const feedbackBtn = document.getElementById("submitFeedbackBtn");
+              feedbackBtn.onclick = () =>
+                submitFeedback(cleanQR, data.borrower, data.item);
+          }
+        }
+      })
+      .catch(err => {
+        statusEl.textContent = "Error verifying QR: " + err;
+        scanning = true;
+        captureLoop();
+      });
+  }
+
+  function updateReservation(mode, qr, deliveredBy) {
+
+      // Build request URL including delivered_by parameter
+      const url = `/update_reservation/${mode}/${encodeURIComponent(qr)}/?delivered_by=${encodeURIComponent(deliveredBy)}`;
+
+      fetch(url, { method: "GET" })
+          .then(r => r.json())
+          .then(data => {
+              beep();
+
+              Swal.fire({
+                  icon: "success",
+                  title: "Borrower Claimed Item ✅",
+                  text: `Claim recorded successfully.\nDelivered by: ${deliveredBy}`,
+                  confirmButtonColor: "#28a745"
+              }).then(() => window.location.href = "/verification/");
+          })
+          .catch(err => {
+              console.error("Error updating reservation:", err);
+              Swal.fire("Error", "Failed to update reservation: " + err.message, "error");
+          });
+  }
+
+  function submitFeedback(qr, borrower, item) {
+    const comment = document.getElementById("feedbackComment").value.trim();
+    const returnStatus = document.getElementById("returnStatus").value;
+
+    if (!returnStatus) {
+      Swal.fire("Error", "Please select a return status.", "error");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("transaction_id", qr);
+    formData.append("comment", comment);
+    formData.append("return_status", returnStatus);
+
+    fetch("/submit_feedback/", { method: "POST", body: formData })
+      .then(r => r.json())
+      .then(data => {
+        beep();
+        Swal.fire({
+          icon: "success",
+          title: "Feedback Submitted ✅",
+          text: `${borrower}'s return for '${item}' marked as '${returnStatus}'.`,
+          confirmButtonColor: "#28a745"
+        }).then(() => window.location.href = "/verification/");
+      })
+      .catch(err => {
+        console.error("Error submitting feedback:", err);
+        Swal.fire("Error", "Failed to submit feedback: " + err.message, "error");
+      });
+  }
+})();
+</script>
+</div>
+{% endblock %}

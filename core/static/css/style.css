@@ -1,0 +1,298 @@
+/* ================================
+   🧭 DASHBOARD LAYOUT (CLEAN VERSION)
+   ================================ */
+
+/* --- Reset --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  scrollbar-gutter: stable both-edges;
+  overflow: hidden;
+}
+
+body {
+  font-family: "Poppins", Arial, sans-serif;
+  color: #191a19;
+  background: #f4f6f9;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+/* ===============================
+   HEADER
+   =============================== */
+.header {
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  height: 60px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #444;
+}
+
+.logo img.avatar {
+  width: 50px;
+  height: 36px;
+  object-fit: contain;
+  margin-right: 10px;
+}
+
+.header-title {
+  flex: 1;
+  text-align: center;
+  font-size: 1rem;
+  color: #444;
+  font-weight: 500;
+}
+
+/* 🔔 Notification Bell */
+.notif-bell {
+  position: relative;
+  cursor: pointer;
+  font-size: 1.4rem;
+  color: #555;
+  transition: color 0.2s ease;
+}
+
+.notif-bell:hover {
+  color: #97c6d2;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: #e74c3c;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 5px;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+}
+
+/* ===============================
+   SIDEBAR
+   =============================== */
+.sidebar {
+  width: 240px;
+  background: #fff;
+  border-right: 1px solid #e0e0e0;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.03);
+  position: fixed;
+  top: 60px;
+  bottom: 0;
+  left: 0;
+  overflow-y: auto;
+  z-index: 999;
+}
+
+.sidebar .menu-label {
+  font-size: 0.75rem;
+  color: #999;
+  margin-bottom: 14px;
+  padding-left: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  text-decoration: none;
+  color: #444;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.sidebar a i {
+  font-size: 1.1rem;
+  color: #777;
+  transition: color 0.18s ease;
+}
+
+.sidebar a:hover {
+  background: #eef5fb;
+  color: #111;
+}
+
+.sidebar a:hover i {
+  color: #97c6d2;
+}
+
+.sidebar a.active {
+  background: #97c6d2;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.sidebar a.active i {
+  color: #fff;
+}
+
+/* ===============================
+   CONTENT AREA
+   =============================== */
+.content {
+  flex: 1;
+  margin-left: 225px;
+  margin-top: 60px;
+  background: #f9fafc;
+  padding: 20px;
+  overflow: auto;
+  height: calc(100vh - 60px);
+  position: relative;
+  opacity: 1;
+  transform: translateY(4px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  will-change: opacity, transform;
+  transform: none;
+}
+
+/* ✅ Dashboard only (with right panel) */
+body.dashboard .content {
+  margin-right: 300px;
+}
+
+/* ✅ All other pages full width */
+body:not(.dashboard) .content {
+  margin-right: 0;
+}
+
+
+.content.fullwidth {
+  margin-right: 0 !important;
+}
+
+body.leaving .content {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* ===============================
+   RIGHT PENDING PANEL
+   =============================== */
+.pending-container {
+  position: fixed;
+  top: 60px;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  background: #fff;
+  border-left: 1px solid #e0e0e0;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.03);
+  z-index: 998;
+  overflow-y: auto;
+}
+
+.side-panel {
+  padding: 16px;
+}
+
+.side-panel h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 12px;
+}
+
+.side-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.side-panel li {
+  padding: 10px 12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #fafafa;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-high {
+  background: #ffe5e5;
+  color: #b30000;
+}
+
+.badge-medium {
+  background: #fff4cc;
+  color: #996600;
+}
+
+.badge-low {
+  background: #e6f6ff;
+  color: #005b99;
+}
+
+/* ===============================
+   RESPONSIVE
+   =============================== */
+@media (max-width: 1024px) {
+  .content {
+    margin-right: 0;
+  }
+
+  .pending-container {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    transition: none;
+    transform: none;
+    opacity: 1 !important;
+  }
+
+  body.leaving .content {
+    opacity: 1;
+    transform: none;
+  }
+
+  .sidebar a {
+    transition: none;
+  }
+}
+
+

@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="history-logs">
+  <div class="header-section">
+    <h2>Transaction History</h2>
+    <p>Total Transactions: <strong>{{ transactions|length }}</strong></p>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <input type="text" id="searchBox" placeholder=" Search by transaction, user, or item">
+    <select id="statusFilter">
+      <option value="">All Statuses</option>
+      <option value="pending">Pending</option>
+      <option value="approved">Approved</option>
+      <option value="in use">In Use</option>
+      <option value="returned">Returned</option>
+      <option value="declined">Declined</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+
+
+    <div class="date-filter">
+      <label>
+        From
+        <input type="date" id="fromDate">
+      </label>
+      <label>
+        To
+        <input type="date" id="toDate">
+      </label>
+    </div>
+
+    <select id="rowsPerPage" class="rows-select">
+      <option value="10">10 rows</option>
+      <option value="25">25 rows</option>
+      <option value="50">50 rows</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrapper">
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>Transaction ID</th>
+          <th>User Name</th>
+          <th>Item Name</th>
+          <th>Quantity</th>
+          <th>Contact</th>
+          <th>Recorded On</th>
+          <th>Date &amp; Time Receive</th>
+          <th>Date &amp; Time Returned</th>
+          <th>Delivered By</th> 
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for t in transactions %}
+      <tr>
+          <td class="txid">{{ t.transaction_id }}</td>
+          <td class="user">{{ t.user_name }}</td>
+
+          <!-- ITEM NAMES STACKED -->
+          <td class="item">
+              {% for name in t.item_list %}
+                  <div>{{ name }}</div>
+              {% endfor %}
+          </td>
+
+          <!-- QUANTITIES STACKED -->
+          <td class="qty">
+              {% for qty in t.qty_list %}
+                  <div>{{ qty }}</div>
+              {% endfor %}
+          </td>
+
+          <td class="contact">{{ t.contact }}</td>
+
+          <td>{{ t.created_at|date:"Y-m-d h:i A" }}</td>
+
+          <td class="receive">
+              {% if t.date_receive %}
+                  {% if t.date_receive.hour or t.date_receive.minute %}
+                      {{ t.date_receive|date:"Y-m-d h:i A" }}
+                  {% else %}
+                      {{ t.date_receive|date:"Y-m-d" }}
+                  {% endif %}
+              {% else %}
+                  —
+              {% endif %}
+          </td>
+
+          <td class="returned">
+              {% if t.date_returned %}
+                  {% if t.date_returned.hour or t.date_returned.minute %}
+                      {{ t.date_returned|date:"Y-m-d h:i A" }}
+                  {% else %}
+                      {{ t.date_returned|date:"Y-m-d" }}
+                  {% endif %}
+              {% else %}
+                  —
+              {% endif %}
+          </td>
+
+          <td class="delivered-by">{{ t.delivered_by|default:"—" }}</td>
+
+          <td class="status">
+              <span class="badge badge-{{ t.status|lower }}">{{ t.status|capfirst }}</span>
+          </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+/* === Base Layout === */
+.history-logs {
+  font-family: "Inter", system-ui, sans-serif;
+  padding: 32px;
+  background-color: #f8fafc;
+  min-height: calc(100vh - 100px);
+}
+
+.header-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.header-section h2 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.header-section p {
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+/* === Filters === */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: center;
+  background: #ffffff;
+  padding: 12px 16px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.filters input,
+.filters select {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  color: #334155;
+  transition: border-color 0.2s ease;
+}
+
+.filters input:focus,
+.filters select:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+.date-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.date-filter label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #475569;
+  margin: 0;
+}
+
+.date-filter input[type="date"] {
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #334155;
+  background: #fff;
+  height: 36px;
+}
+
+.date-filter input[type="date"]:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+
+/* === Table === */
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #334155;
+}
+
+.history-table th {
+  background: #f1f5f9;
+  padding: 12px 14px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.history-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.history-table tr:hover {
+  background: #f8fafc;
+}
+
+.empty-state {
+  text-align: center;
+  color: #94a3b8;
+  padding: 20px 0;
+  font-style: italic;
+}
+
+/* === Badges === */
+.badge {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.badge-pending {
+  background: #fef9c3;
+  color: #92400e;
+}
+
+
+.badge-approved {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-borrowed {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.badge-returned {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge-declined,
+.badge-declined {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filters input,
+  .filters select {
+    width: 100%;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 10px;
+    font-size: 13px;
+  }
+}
+</style>
+
+<script>
+(function() {
+  const rows = Array.from(document.querySelectorAll('.history-table tbody tr'))
+    .filter(tr => tr.querySelectorAll('td').length >= 6);
+
+  const searchBox = document.getElementById('searchBox');
+  const statusFilter = document.getElementById('statusFilter');
+  const fromDate = document.getElementById('fromDate');
+  const toDate = document.getElementById('toDate');
+  const rowsPerPage = document.getElementById('rowsPerPage');
+
+  // helper for date
+  function parseDate(s) {
+    if (!s || s === '—') return null;
+    return new Date(s.replace(' ', 'T'));
+  }
+
+  function applyFilters() {
+    const q = (searchBox.value || '').toLowerCase().trim();
+    const selectedStatus = (statusFilter.value || '').toLowerCase();
+    const from = fromDate.value ? new Date(fromDate.value) : null;
+    const to = toDate.value ? new Date(toDate.value) : null;
+    const limit = parseInt(rowsPerPage.value || '10', 10);
+
+    let shown = 0;
+
+    rows.forEach(tr => {
+      const txId = tr.querySelector('.txid')?.textContent.toLowerCase() || '';
+      const user = tr.querySelector('.user')?.textContent.toLowerCase() || '';
+      const item = tr.querySelector('.item')?.textContent.toLowerCase() || '';
+      const statusText = tr.querySelector('.status span')?.textContent.trim().toLowerCase() || '';
+      const receiveTxt = tr.querySelector('.receive')?.textContent.trim() || '—';
+
+      // ✅ Search filter
+      const matchesSearch = !q || txId.includes(q) || user.includes(q) || item.includes(q);
+
+      // ✅ Status filter
+      const matchesStatus = !selectedStatus || statusText === selectedStatus;
+
+      // ✅ Date filter
+      let matchesDate = true;
+      if (from || to) {
+        const d = parseDate(receiveTxt);
+        if (from && (!d || d < from)) matchesDate = false;
+        if (to) {
+          const end = new Date(to);
+          end.setDate(end.getDate() + 1);
+          if (!d || d >= end) matchesDate = false;
+        }
+      }
+
+      const visible = matchesSearch && matchesStatus && matchesDate && shown < limit;
+      tr.style.display = visible ? '' : 'none';
+      if (visible) shown++;
+    });
+  }
+
+  [searchBox, statusFilter, fromDate, toDate, rowsPerPage].forEach(el => {
+    el?.addEventListener('input', applyFilters);
+    el?.addEventListener('change', applyFilters);
+  });
+
+  applyFilters();
+})();
+</script>
+
+{% endblock %}

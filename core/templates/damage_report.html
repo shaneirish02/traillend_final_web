@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="damage-page">
+
+  <!-- Sidebar (Live Details) -->
+  <section class="report-details-card">
+    <h2 class="section-title">Live Report Preview</h2>
+    <div id="report-details" class="report-details-empty">
+      <p>Click any row to preview full report details.</p>
+    </div>
+  </section>
+
+  <!-- Main Table Section -->
+  <section class="report-table-section">
+    <div class="header-bar">
+      <h2>Damage & Loss Reports</h2>
+      <div class="search-wrapper">
+        <input type="text" id="search-input" placeholder="Search by user or address..." />
+        <i class="fa fa-search"></i>
+      </div>
+    </div>
+
+    <p class="total-count">Total Reports: <strong>{{ reports|length }}</strong></p>
+
+    <div class="table-container">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Item</th>
+            <th>User</th>
+            <th>Address</th>
+            <th>Location</th>
+            <th>Quantity</th>
+            <th>Status</th> <!-- NEW -->
+            <th>Image</th>
+            <th>Date Submitted</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% if reports %}
+            {% for r in reports %}
+            <tr class="report-row"
+                data-id="{{ r.id }}"
+                data-type="{{ r.type }}"
+                data-user="{{ r.user_name }}"
+                data-address="{{ r.address }}"
+                data-image="{{ r.image }}"
+                data-date="{{ r.date }}"
+                data-location="{{ r.location }}"
+                data-quantity="{{ r.quantity }}"
+                data-description="{{ r.description }}"
+                data-item="{{ r.item_name }}">
+
+              <td><span class="type-badge {{ r.type|lower }}">{{ r.type }}</span></td>
+              <td>{{ r.item_name }}</td>
+              <td>{{ r.user_name }}</td>
+              <td>{{ r.address }}</td>
+              <td>{{ r.location }}</td>
+              <td>{{ r.quantity }}</td>
+
+              <!-- NEW STATUS COLUMN -->
+              <td class="status-col">{{ r.status }}</td>
+
+              <td>
+                {% if r.image != "No image" %}
+                  <img src="{{ r.image }}" alt="Report Image" class="thumb">
+                {% else %}
+                  <span class="no-img">No image</span>
+                {% endif %}
+              </td>
+
+              <td>{{ r.date }}</td>
+
+              <!-- ACTION BUTTONS -->
+              <td>
+                {% if r.type == "Damage" %}
+                    {% if r.status == "Pending" %}
+                      <button class="action-btn action-review" data-action="review">Review</button>
+                    {% elif r.status == "Reviewed" %}
+                      <button class="action-btn action-resolve" data-action="resolve">Resolve</button>
+                    {% else %}
+                      <button class="action-btn action-disabled" disabled>Done</button>
+                    {% endif %}
+
+                {% elif r.type == "Loss" %}
+                    {% if r.status == "Pending" %}
+                      <button class="action-btn action-review" data-action="verify">Verify</button>
+                    {% elif r.status == "Verified" %}
+                      <button class="action-btn action-resolve" data-action="settle">Settle</button>
+                    {% else %}
+                      <button class="action-btn action-disabled" disabled>Done</button>
+                    {% endif %}
+                {% endif %}
+              </td>
+
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="10" class="no-data">No Reports Found</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+
+<style>
+.damage-page {
+  display: grid;
+  grid-template-columns: 1.3fr 3fr;
+  gap: 24px;
+  font-family: "Poppins", sans-serif;
+  color: #1f2937;
+}
+
+/* Sidebar (Details) */
+.report-details-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 16px;
+}
+
+.report-details-empty {
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+  margin-top: 40px;
+}
+
+.report-details-card img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.report-details-card p {
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.report-details-card hr {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Table Section */
+.report-table-section {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+}
+
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.header-bar h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e3a8a;
+}
+
+.search-wrapper {
+  position: relative;
+  width: 250px;
+}
+
+.search-wrapper input {
+  width: 100%;
+  padding: 8px 32px 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  outline: none;
+  font-size: 14px;
+  background: #f9fafb;
+}
+
+.search-wrapper i {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  color: #6b7280;
+}
+
+.total-count {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.report-table th {
+  text-align: left;
+  background: #f1f5f9;
+  padding: 12px;
+  color: #334155;
+  font-weight: 600;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.report-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+.report-table tr:hover {
+  background: #f9fafb;
+  cursor: pointer;
+}
+
+.report-table tr.active {
+  background: #dbeafe !important;
+}
+
+.thumb {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+}
+
+.no-img {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.no-data {
+  text-align: center;
+  color: #9ca3af;
+  font-style: italic;
+  padding: 20px 0;
+}
+
+/* ===================== NEW BADGE CSS ===================== */
+.type-badge {
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.type-badge.damage {
+  background: #dc2626; /* red */
+}
+
+.type-badge.loss {
+  background: #1d4ed8; /* blue */
+}
+
+
+.action-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.2s;
+  color: white;
+}
+
+/* Blue buttons → Review, Verify */
+.action-review {
+  background: #2563eb;
+}
+.action-review:hover {
+  background: #1e40af;
+}
+
+/* Green buttons → Resolve, Settle */
+.action-resolve {
+  background: #16a34a;
+}
+.action-resolve:hover {
+  background: #15803d;
+}
+
+/* Gray disabled */
+.action-disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const rows = document.querySelectorAll(".report-row");
+
+  /* ========== PREVIEW ========== */
+  rows.forEach(row => {
+    row.addEventListener("click", function () {
+      rows.forEach(r => r.classList.remove("active"));
+      this.classList.add("active");
+
+      const d = document.getElementById("report-details");
+
+      const imageHTML =
+        this.dataset.image !== "No image"
+          ? `<img src="${this.dataset.image}" alt="">`
+          : `<div class="no-img">No image available</div>`;
+
+      d.classList.remove("report-details-empty");
+      d.innerHTML = `
+        <span class="type-badge ${this.dataset.type.toLowerCase()}">${this.dataset.type}</span>
+        <br><br>
+        ${imageHTML}
+        <p><strong>Type:</strong> ${this.dataset.type}</p>
+        <p><strong>Item:</strong> ${this.dataset.item}</p>
+        <p><strong>User:</strong> ${this.dataset.user}</p>
+        <p><strong>Address:</strong> ${this.dataset.address}</p>
+        <p><strong>Date:</strong> ${this.dataset.date}</p>
+        <hr>
+        <p><strong>Location:</strong> ${this.dataset.location}</p>
+        <p><strong>Quantity Affected:</strong> ${this.dataset.quantity}</p>
+        <p><strong>Description:</strong><br>${this.dataset.description}</p>
+      `;
+    });
+  });
+
+  /* ========== ACTION HANDLER ========== */
+  rows.forEach(row => {
+    const actionBtn = row.querySelector(".action-btn");
+
+    if (!actionBtn || actionBtn.disabled) return;
+
+    actionBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+
+      const reportId = row.dataset.id;
+      const action = this.dataset.action;
+
+      const formData = new FormData();
+      formData.append("action", action);
+
+      fetch(`/damage-report/update-status/${reportId}/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+
+          /* Update the status in table */
+          row.querySelector(".status-col").innerText = data.new_status;
+
+          /* Update button behavior */
+          if (data.new_status === "Reviewed" || data.new_status === "Verified") {
+            this.innerText = row.dataset.type === "Damage" ? "Resolve" : "Settle";
+            this.classList.remove("action-review");
+            this.classList.add("action-resolve");
+            this.dataset.action = row.dataset.type === "Damage" ? "resolve" : "settle";
+          } else {
+            this.innerText = "Done";
+            this.className = "action-btn action-disabled";
+            this.disabled = true;
+          }
+        }
+      });
+    });
+  });
+
+  /* ========== SEARCH ========== */
+  const searchInput = document.getElementById("search-input");
+  searchInput.addEventListener("keyup", function () {
+    const value = this.value.toLowerCase();
+    rows.forEach(row => {
+      const user = row.dataset.user.toLowerCase();
+      const address = row.dataset.address.toLowerCase();
+      row.style.display = (user.includes(value) || address.includes(value)) ? "" : "none";
+    });
+  });
+});
+</script>
+
+{% endblock %}
+

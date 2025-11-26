@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<div class="reports-wrap">
+
+  <!-- HEADER -->
+  <header class="reports-header">
+    <h1>Reports & Analytics</h1>
+    <p class="subtitle">View, filter, and export transaction records.</p>
+  </header>
+
+  <!-- ================= TOP FILTERS ================= -->
+  <div class="filters">
+
+      <!-- Manual Start Date -->
+      <div class="filter-group">
+          <label>Start Date</label>
+          <input type="date" id="startDate">
+      </div>
+
+      <!-- Manual End Date -->
+      <div class="filter-group">
+          <label>End Date</label>
+          <input type="date" id="endDate">
+      </div>
+
+      <!-- Quick Ranges -->
+      <div class="filter-group">
+          <label>Date Range</label>
+          <select id="presetRange">
+              <option value="custom" selected>Custom</option>
+              <option value="today">Today</option>
+              <option value="this_week">Week</option>
+              <option value="this_month">Month</option>
+              <option value="annual">Annual</option>
+          </select>
+      </div>
+      <!-- DAMAGE / LOSS FILTER -->
+          <select id="reportTypeFilter" class="sub-filter">
+              <option value="all">All Reports</option>
+              <option value="damage">Damage Only</option>
+              <option value="loss">Loss Only</option>
+          </select>
+       </div>
+
+  <!-- ================= TRANSACTION TABLE ================= -->
+  <section class="card transaction-card">
+
+      <div class="transaction-header">
+          <h2>Transactions</h2>
+
+          <div class="table-filters">
+
+              <!-- Status Filter -->
+              <select id="statusFilter" class="sub-filter">
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="in use">In Use</option>
+                  <option value="returned">Returned</option>
+                  <option value="declined">Declined</option>
+                  <option value="cancelled">Cancelled</option>
+              </select>
+
+              <!-- Category Filter -->
+              <select id="categoryFilter" class="sub-filter">
+                  <option value="all">All Categories</option>
+                  <option value="Seating">Seating</option>
+                  <option value="Tables">Tables</option>
+                  <option value="Tent">Tent</option>
+                  <option value="Venues">Venues</option>
+                  <option value="Sport Equipment">Sport Equipment</option>
+                  <option value="Cooling Ventilation">Cooling Ventilation</option>
+                  <option value="Water Supply">Water Supply</option>
+                  <option value="Electrical Accessories">Electrical Accessories</option>
+                  <option value="Audio-Visual Equipment">Audio-Visual Equipment</option>
+                  <option value="Transportation">Transportation</option>
+              </select>
+
+              <!-- EXPORT DROPDOWN -->
+              <div class="export-dropdown">
+                <button type="button" class="btn export-btn">Export ▼</button>
+                <div class="export-menu">
+                    <a id="exportExcel">Excel</a>
+                    <a id="exportDocx">DOCX</a>
+                    <a id="exportPdf">PDF</a>
+                </div>
+              </div>
+
+          </div>
+      </div>
+
+      <p class="muted">Showing transactions based on selected filters.</p>
+
+      <div class="table-wrap">
+          <table id="transactionsTable" class="transactions">
+              <thead>
+                  <tr>
+                      <th>Item Name</th>
+                      <th>Category</th>
+                      <th>Borrower</th>
+                      <th>Borrowed At</th>
+                      <th>Returned At</th>
+                      <th>Report Type</th>
+                      <th>Status</th>
+                  </tr>
+              </thead>
+              <tbody></tbody>
+          </table>
+      </div>
+
+  </section>
+
+</div>
+
+<!-- ================= JAVASCRIPT ================= -->
+<script>
+
+// Format date → YYYY-MM-DD
+const fmt = d => d.toISOString().slice(0, 10);
+
+// Quick Date Range Handler
+function applyPresetRange(type) {
+    const startInput = document.getElementById("startDate");
+    const endInput = document.getElementById("endDate");
+
+    const today = new Date();
+    let start = new Date(today);
+
+    if (type === "today") {
+        start = today;
+    }
+
+    if (type === "this_week") {
+        start.setDate(today.getDate() - today.getDay()); // Sunday → Today
+    }
+
+    if (type === "this_month") {
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+    }
+
+    if (type === "annual") {
+        start = new Date(today.getFullYear(), 0, 1); // Jan 1
+    }
+
+    startInput.value = fmt(start);
+    endInput.value = fmt(today);
+
+    updateTable();
+}
+
+// Preset range change
+document.getElementById("presetRange").addEventListener("change", function () {
+    if (this.value === "custom") return;
+    applyPresetRange(this.value);
+});
+
+// Manual date updates
+document.getElementById("startDate").addEventListener("change", updateTable);
+document.getElementById("endDate").addEventListener("change", updateTable);
+document.getElementById("reportTypeFilter").addEventListener("change", updateTable);
+
+
+// Status + Category filters
+["statusFilter", "categoryFilter"].forEach(id => {
+    document.getElementById(id).addEventListener("change", updateTable);
+});
+
+// MAIN UPDATE FUNCTION
+function updateTable() {
+    const start = document.getElementById("startDate").value;
+    const end = document.getElementById("endDate").value;
+    const status = document.getElementById("statusFilter").value;
+    const category = document.getElementById("categoryFilter").value;
+    const reportType = document.getElementById("reportTypeFilter").value;
+
+    const params = new URLSearchParams({
+        start,
+        end,
+        status,
+        category,
+        report_type: reportType,
+        t: Date.now(), // cache buster
+    });
+
+    fetch(`/statistics/data/?${params.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+
+            const tbody = document.querySelector("#transactionsTable tbody");
+            tbody.innerHTML = "";
+
+            if (!data.transactions || data.transactions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7">No records found.</td></tr>`;
+                return;
+            }
+
+            data.transactions.forEach(t => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${t.item_name ?? "-"}</td>
+                        <td>${t.category ?? "-"}</td>
+                        <td>${t.borrower_name ?? "-"}</td>
+                        <td>${t.borrowed_at ?? "-"}</td>
+                        <td>${t.returned_at ?? "-"}</td>
+                        <td>${t.report_type ?? "None"}</td>
+                        <td><span class="status ${t.status?.toLowerCase() ?? "unknown"}">${t.status}</span></td>
+                    </tr>`;
+            });
+        })
+        .catch(err => console.error("Fetch error:", err));
+}
+
+
+
+// Load table on page load
+document.addEventListener("DOMContentLoaded", updateTable);
+
+// Export Handlers
+document.querySelector(".export-btn").addEventListener("click", () => {
+    document.querySelector(".export-menu").classList.toggle("show");
+});
+
+function exportFile(type) {
+    const start = document.getElementById("startDate").value;
+    const end = document.getElementById("endDate").value;
+    const status = document.getElementById("statusFilter").value;
+    const category = document.getElementById("categoryFilter").value;
+    const report_type = document.getElementById("reportTypeFilter").value;
+
+    const params = new URLSearchParams({ start, end, status, category, report_type });
+
+    window.location.href = `/statistics/export/${type}/?${params}`;
+}
+
+document.getElementById("exportExcel").addEventListener("click", () => exportFile("excel"));
+document.getElementById("exportDocx").addEventListener("click", () => exportFile("docx"));
+document.getElementById("exportPdf").addEventListener("click", () => exportFile("pdf"));
+
+</script>
+
+
+<!-- ================= PROFESSIONAL CSS ================= -->
+<style>
+
+.reports-wrap {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+    font-family: "Poppins", sans-serif;
+}
+
+.reports-header h1 { font-size: 26px; }
+.subtitle { color: #6b7280; font-size: 14px; }
+
+/* TOP FILTERS */
+.filters {
+    display: flex;
+    gap: 20px;
+    background: #f8fafc;
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 25px;
+}
+
+.filter-group { display: flex; flex-direction: column; }
+
+.filter-group label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.filter-group input[type="date"],
+.filter-group select {
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: white;
+    font-size: 14px;
+    outline: none;
+    transition: .2s;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59,130,246,.3);
+}
+
+/* TRANSACTION CARD */
+.transaction-card {
+    padding: 20px;
+    border-radius: 12px;
+    background: white;
+    border: 1px solid #e2e8f0;
+}
+
+.transaction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.table-filters { display: flex; gap: 10px; }
+
+.sub-filter {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+}
+
+/* EXPORT DROPDOWN */
+.export-dropdown { position: relative; }
+.export-btn {
+    background: #e2e8f0;
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+.export-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 35px;
+    background: white;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    width: 130px;
+}
+.export-menu.show { display: block; }
+.export-menu a {
+    padding: 10px;
+    display: block;
+    cursor: pointer;
+}
+.export-menu a:hover { background: #f1f5f9; }
+
+/* TABLE */
+.table-wrap { margin-top: 15px; overflow-x: auto; }
+
+.transactions {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.transactions th {
+    background: #f1f5f9;
+    padding: 10px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.transactions td {
+    padding: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* STATUS COLORS */
+.status {
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status.pending { background:#fef3c7;color:#b45309; }
+.status.approved { background:#dcfce7;color:#166534; }
+.status.in-use { background:#dbeafe;color:#1e40af; }
+.status.returned { background:#fef9c3;color:#854d0e; }
+.status.declined { background:#fee2e2;color:#991b1b; }
+.status.cancelled { background:#e4e4e7;color:#374151; }
+
+
+</style>
+
+{% endblock %}
