@@ -3,8 +3,10 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
+from core.views import apply_migrations
 
 urlpatterns = [
+    path("apply-migrations/", apply_migrations),
     path("admin/", admin.site.urls),
     path("", lambda request: redirect("login")),  # redirect root to login page
     path("", include('core.urls')),
