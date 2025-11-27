@@ -11,5 +11,5 @@ jobs:
     steps:
       - name: Trigger scheduled notifications in Django
         run: |
-          curl -X POST https://traillend-system-r0kw.onrender.com/api/run-scheduler/ \
+          curl -X POST https://traillend-system-beuc.onrender.com/api/run-scheduler/ \
           -H "Content-Type: application/json"
