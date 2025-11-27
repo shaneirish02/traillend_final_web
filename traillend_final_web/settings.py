@@ -201,9 +201,9 @@ USE_TZ = True
 # STATIC & MEDIA
 # ============================================
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / 'staticfiles'      # Railway collects here
 STATICFILES_DIRS = [
-    BASE_DIR / "core" / "static"
+    BASE_DIR / 'core/static'               # your static folder
 ]
 
 
