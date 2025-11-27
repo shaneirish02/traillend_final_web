@@ -7,9 +7,17 @@ from .views import (
     forgot_password, verify_reset_code, run_scheduler_api # ✅ make sure these are imported
 )
 from . import views
+from django.http import HttpResponse
+from django.core.management import call_command
+
+def run_migrations(request):
+    call_command("migrate")
+    return HttpResponse("MIGRATIONS APPLIED!")
 
 urlpatterns = [
     # Web page login
+    path("apply-migrations/", run_migrations),
+
     path("login/", views.admin_login, name="login"),
 
     # Admin web views
