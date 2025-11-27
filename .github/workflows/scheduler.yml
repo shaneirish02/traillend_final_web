@@ -2,14 +2,14 @@ name: Notification Scheduler
 
 on:
   schedule:
-    - cron: "*/1 * * * *"   # run every minute
+    - cron: "*/1 * * * *"   # runs every 1 minute
   workflow_dispatch:
 
 jobs:
   run-scheduler:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Django scheduler endpoint
+      - name: Trigger scheduled notifications in Django
         run: |
-          curl -X POST https://YOUR-RENDER-URL/api/run-scheduler/ \
+          curl -X POST https://traillend-system.onrender.com/api/run-scheduler/ \
           -H "Content-Type: application/json"
