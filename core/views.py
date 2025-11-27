@@ -92,6 +92,13 @@ from .models import Notification, DeviceToken
 from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 
+from django.http import HttpResponse
+from django.core.management import call_command
+
+def apply_migrations(request):
+    call_command("makemigrations")
+    call_command("migrate")
+    return HttpResponse("MIGRATIONS APPLIED!")
 
 
 # -----------------------
